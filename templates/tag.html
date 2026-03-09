@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}#{{ tag.name }} — {{ settings.site_name }}{% endblock %}
+{% block content %}
+<div class="container" style="padding-top: 48px;">
+  <div class="section-header">
+    <h1 class="section-title">🏷️ #{{ tag.name }}</h1>
+    <span class="text-muted">{{ total }} post{% if total != 1 %}s{% endif %}</span>
+  </div>
+  {% if posts %}
+  <div class="posts-grid">
+    {% for post in posts %}
+    <article class="post-card">
+      <div class="post-card-placeholder">📝</div>
+      <div class="post-card-body">
+        <h2 class="post-card-title"><a href="{{ url_for('post', slug=post.slug) }}">{{ post.title }}</a></h2>
+        <p class="post-card-excerpt">{{ post.excerpt or '' }}</p>
+        <div class="post-card-meta">
+          <span>{{ post.author_name or 'Author' }}</span>
+          <span>{{ post.published_at[:10] if post.published_at else '' }}</span>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><div class="empty-icon">🏷️</div><h3>No posts with this tag.</h3></div>
+  {% endif %}
+</div>
+{% endblock %}

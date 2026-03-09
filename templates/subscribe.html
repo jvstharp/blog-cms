@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ settings.site_name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background: #fff;
+      min-height: 100vh;
+      color: #120D0D;
+    }
+
+    /* Top bar */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 32px;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 10;
+    }
+    .logo-circle {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: #D9D9D9;
+    }
+    .site-brand {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      gap: 10px;
+    }
+    .site-brand img {
+      height: 40px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
+    .site-brand .brand-name {
+      font-family: 'Alegreya Sans', serif;
+      font-weight: 800;
+      font-size: 20px;
+      color: #120D0D;
+    }
+    .login-btn {
+      padding: 8px 24px;
+      background: #F3E2FF;
+      color: #7B4EA0;
+      border: none;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      font-family: inherit;
+      transition: background .2s;
+    }
+    .login-btn:hover { background: #e8ceff; }
+
+    /* Centered content */
+    .center-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 100px 24px 60px;
+    }
+    .heya {
+      font-family: 'Alegreya Sans', serif;
+      font-weight: 800;
+      font-size: 60px;
+      line-height: 1.1;
+      color: #120D0D;
+      margin-bottom: 20px;
+    }
+    .welcome-text {
+      font-size: 12px;
+      color: #120D0D;
+      margin-bottom: 40px;
+      line-height: 1.6;
+      max-width: 340px;
+    }
+    .subscribe-form {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      max-width: 360px;
+    }
+    .email-input {
+      flex: 1;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 50px;
+      background: #F5F5F5;
+      font-size: 14px;
+      font-family: inherit;
+      color: #120D0D;
+      outline: none;
+    }
+    .email-input::placeholder { color: #999; }
+    .subscribe-btn {
+      padding: 14px 24px;
+      background: #C38AE9;
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .2s;
+    }
+    .subscribe-btn:hover { background: #b070d8; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <a href="{{ url_for('index') }}" class="site-brand">
+      {% if settings.site_logo %}
+      <img src="{{ url_for('static', filename='uploads/' + settings.site_logo) }}" alt="{{ settings.site_name }}">
+      {% else %}
+      <div class="logo-circle"></div>
+      {% endif %}
+      <span class="brand-name">{{ settings.site_name }}</span>
+    </a>
+    <a href="{{ url_for('admin_login') }}" class="login-btn">Login</a>
+  </div>
+
+  <div class="center-wrap">
+    <h1 class="heya">Heya!</h1>
+    <p class="welcome-text">
+      Welcome to {{ settings.site_name }}. Subscribe below for the full content!
+    </p>
+    <form class="subscribe-form" action="{{ url_for('subscribe') }}" method="post">
+      <input class="email-input" type="email" name="email" placeholder="Email" required>
+      <button class="subscribe-btn" type="submit">Subscribe</button>
+    </form>
+  </div>
+</body>
+</html>

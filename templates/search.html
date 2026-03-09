@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Search "{{ query }}" — {{ settings.site_name }}{% endblock %}
+{% block content %}
+<div class="container" style="padding-top: 48px;">
+  <div class="section-header">
+    <h1 class="section-title">🔍 Search Results</h1>
+    {% if query %}<span class="text-muted">{{ posts|length }} result{% if posts|length != 1 %}s{% endif %} for "{{ query }}"</span>{% endif %}
+  </div>
+  <form action="{{ url_for('search') }}" method="get" style="margin-bottom: 32px;">
+    <div style="display: flex; gap: 12px; max-width: 500px;">
+      <input class="form-control" name="q" value="{{ query }}" placeholder="Search posts…" style="flex:1;">
+      <button class="btn btn-primary" type="submit">Search</button>
+    </div>
+  </form>
+  {% if posts %}
+  <div class="posts-grid">
+    {% for post in posts %}
+    <article class="post-card">
+      <div class="post-card-placeholder">📝</div>
+      <div class="post-card-body">
+        <h2 class="post-card-title"><a href="{{ url_for('post', slug=post.slug) }}">{{ post.title }}</a></h2>
+        <p class="post-card-excerpt">{{ post.excerpt or '' }}</p>
+        <div class="post-card-meta">
+          <span>{{ post.author_name or 'Author' }}</span>
+          <span>{{ post.published_at[:10] if post.published_at else '' }}</span>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% elif query %}
+  <div class="empty-state"><div class="empty-icon">🔍</div><h3>No results found for "{{ query }}"</h3><p>Try different keywords.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

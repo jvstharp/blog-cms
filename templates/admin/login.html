@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #C38AE9;
+      --primary-dark: #a96fd0;
+      --primary-light: #F3E2FF;
+      --text: #120D0D;
+      --text-muted: #6B6B6B;
+      --border: #E8E8E8;
+      --font-display: 'Alegreya Sans', Georgia, serif;
+      --font-body: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      font-size: 14px;
+      background: #F7F7F7;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 44px 40px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.06);
+    }
+    .login-logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .login-logo .logo-circle {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--primary-light);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px;
+      font-size: 20px;
+    }
+    .login-logo h1 {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .login-logo p {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    .form-group { margin-bottom: 18px; }
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    input {
+      width: 100%;
+      padding: 11px 14px;
+      background: #FAFAFA;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color .2s;
+      font-family: var(--font-body);
+    }
+    input:focus { border-color: var(--primary); }
+    .btn {
+      width: 100%;
+      padding: 13px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .2s;
+      margin-top: 8px;
+      font-family: var(--font-body);
+    }
+    .btn:hover { background: var(--primary-dark); }
+    .error {
+      background: #fee2e2;
+      color: #dc2626;
+      border: 1px solid #fca5a5;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+    .hint {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+      margin-top: 20px;
+    }
+    .back-link {
+      display: block;
+      text-align: center;
+      color: var(--primary);
+      font-size: 13px;
+      margin-top: 16px;
+      text-decoration: none;
+    }
+    .back-link:hover { color: var(--primary-dark); }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-circle">✍️</div>
+      <h1>Blog Admin</h1>
+      <p>Content Management System</p>
+    </div>
+    {% if error %}<div class="error">⚠️ {{ error }}</div>{% endif %}
+    <form method="post" autocomplete="on">
+      <div class="form-group">
+        <label for="username">Username or Email</label>
+        <input id="username" name="username" type="text" required autofocus placeholder="admin">
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" required placeholder="••••••••">
+      </div>
+      <button class="btn" type="submit">Sign In →</button>
+    </form>
+    <a class="back-link" href="/">← Back to Blog</a>
+  </div>
+</body>
+</html>

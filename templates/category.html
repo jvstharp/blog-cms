@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ category.name }} — {{ settings.site_name }}{% endblock %}
+{% block content %}
+<div class="container" style="padding-top: 48px;">
+  <div class="section-header">
+    <div>
+      <h1 class="section-title">📁 {{ category.name }}</h1>
+      {% if category.description %}<p class="text-muted">{{ category.description }}</p>{% endif %}
+    </div>
+    <span class="text-muted">{{ total }} post{% if total != 1 %}s{% endif %}</span>
+  </div>
+
+  {% if posts %}
+  <div class="posts-grid">
+    {% for post in posts %}
+    <article class="post-card">
+      <div class="post-card-placeholder">📝</div>
+      <div class="post-card-body">
+        <h2 class="post-card-title">
+          <a href="{{ url_for('post', slug=post.slug) }}">{{ post.title }}</a>
+        </h2>
+        <p class="post-card-excerpt">{{ post.excerpt or '' }}</p>
+        <div class="post-card-meta">
+          <span>{{ post.author_name or 'Author' }}</span>
+          <span>{{ post.published_at[:10] if post.published_at else '' }}</span>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% if pages > 1 %}
+  <div class="pagination">
+    {% if page > 1 %}<a class="page-btn" href="?page={{ page-1 }}">← Prev</a>{% endif %}
+    {% for p in range(1, pages+1) %}
+    <a class="page-btn {% if p == page %}active{% endif %}" href="?page={{ p }}">{{ p }}</a>
+    {% endfor %}
+    {% if page < pages %}<a class="page-btn" href="?page={{ page+1 }}">Next →</a>{% endif %}
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="empty-state"><div class="empty-icon">📭</div><h3>No posts in this category yet.</h3></div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "admin/base.html" %}
+{% block title %}Tags{% endblock %}
+{% block page_title %}Tags{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Tags</h1>
+  <p class="text-muted">{{ tags|length }} tags total</p>
+</div>
+<div class="card">
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>Name</th><th>Slug</th><th>Posts</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for tag in tags %}
+      <tr>
+        <td><strong>#{{ tag.name }}</strong></td>
+        <td class="text-muted">/tag/{{ tag.slug }}</td>
+        <td class="text-muted">{{ tag.post_count }}</td>
+        <td>
+          <div class="actions">
+            <a href="{{ url_for('tag', slug=tag.slug) }}" class="action-btn view" target="_blank">👁️</a>
+            <button class="action-btn delete" onclick="deleteTag({{ tag.id }}, '{{ tag.name }}', this)">🗑️ Delete</button>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      {% if not tags %}
+      <tr><td colspan="4">
+        <div class="empty-state">
+          <div class="empty-icon">🏷️</div>
+          <h3>No tags yet</h3>
+          <p>Tags are created automatically when you add them to posts.</p>
+        </div>
+      </td></tr>
+      {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function deleteTag(id, name, btn) {
+  if (!confirm(`Delete tag "${name}"?`)) return;
+  const res = await fetch(`/admin/tags/${id}/delete`, { method: 'POST' });
+  if (res.ok) btn.closest('tr').remove();
+}
+</script>
+{% endblock %}

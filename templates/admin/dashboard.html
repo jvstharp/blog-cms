@@ -1,0 +1,138 @@
+{% extends "admin/base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon indigo">📝</div>
+    <div>
+      <div class="stat-value">{{ stats.published_posts }}</div>
+      <div class="stat-label">Published Posts</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon yellow">📄</div>
+    <div>
+      <div class="stat-value">{{ stats.draft_posts }}</div>
+      <div class="stat-label">Drafts</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon blue">👁️</div>
+    <div>
+      <div class="stat-value">{{ stats.total_views }}</div>
+      <div class="stat-label">Total Views</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">💬</div>
+    <div>
+      <div class="stat-value">{{ stats.total_comments }}</div>
+      <div class="stat-label">Comments</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon purple">📁</div>
+    <div>
+      <div class="stat-value">{{ stats.total_categories }}</div>
+      <div class="stat-label">Categories</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon red">🏷️</div>
+    <div>
+      <div class="stat-value">{{ stats.total_tags }}</div>
+      <div class="stat-label">Tags</div>
+    </div>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+  <!-- Recent Posts -->
+  <div class="card">
+    <div class="card-header">
+      <h3>Recent Posts</h3>
+      <a href="{{ url_for('admin_posts') }}" class="action-btn view">View all</a>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>Title</th><th>Status</th><th>Views</th></tr></thead>
+        <tbody>
+        {% for post in recent_posts %}
+        <tr>
+          <td>
+            <div class="post-title-cell">
+              <strong>{{ post.title[:50] }}{% if post.title|length > 50 %}…{% endif %}</strong>
+              <small>{{ post.author_name or '' }}</small>
+            </div>
+          </td>
+          <td><span class="status {{ post.status }}">{{ post.status }}</span></td>
+          <td class="text-muted">{{ post.views }}</td>
+        </tr>
+        {% endfor %}
+        {% if not recent_posts %}
+        <tr><td colspan="3" class="text-muted" style="text-align:center; padding: 24px;">No posts yet</td></tr>
+        {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Top Posts by Views -->
+  <div class="card">
+    <div class="card-header"><h3>Top Posts by Views</h3></div>
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>Title</th><th>Views</th></tr></thead>
+        <tbody>
+        {% for post in top_posts %}
+        <tr>
+          <td>{{ post.title[:48] }}{% if post.title|length > 48 %}…{% endif %}</td>
+          <td><strong>{{ post.views }}</strong></td>
+        </tr>
+        {% endfor %}
+        {% if not top_posts %}
+        <tr><td colspan="2" class="text-muted" style="text-align:center; padding: 24px;">No data</td></tr>
+        {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Comments -->
+{% if recent_comments %}
+<div class="card" style="margin-top: 20px;">
+  <div class="card-header">
+    <h3>Recent Comments</h3>
+    <a href="{{ url_for('admin_comments') }}" class="action-btn view">View all</a>
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>Author</th><th>Comment</th><th>Post</th><th>Status</th><th>Date</th></tr></thead>
+      <tbody>
+      {% for c in recent_comments %}
+      <tr>
+        <td><strong>{{ c.author_name }}</strong></td>
+        <td class="text-muted">{{ c.content[:60] }}…</td>
+        <td><a href="{{ url_for('post', slug=c.post_slug) }}" class="text-muted">{{ c.post_title[:30] }}</a></td>
+        <td><span class="status {{ c.status }}">{{ c.status }}</span></td>
+        <td class="text-muted">{{ c.created_at[:10] }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Quick Actions -->
+<div style="display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap;">
+  <a href="{{ url_for('admin_post_new') }}" class="btn btn-primary">✏️ New Post</a>
+  <a href="{{ url_for('admin_categories') }}" class="btn btn-secondary">📁 Manage Categories</a>
+  <a href="{{ url_for('admin_media') }}" class="btn btn-secondary">🖼️ Media Library</a>
+  <a href="{{ url_for('admin_settings') }}" class="btn btn-secondary">⚙️ Settings</a>
+</div>
+{% endblock %}

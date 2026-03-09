@@ -1,0 +1,58 @@
+{% extends "admin/base.html" %}
+{% block title %}Comments{% endblock %}
+{% block page_title %}Comments{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Comments</h1>
+  <p class="text-muted">{{ comments|length }} total</p>
+</div>
+<div class="card">
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>Author</th><th>Comment</th><th>Post</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for c in comments %}
+      <tr id="comment-{{ c.id }}">
+        <td>
+          <strong>{{ c.author_name }}</strong>
+          <br><small class="text-muted">{{ c.author_email }}</small>
+        </td>
+        <td style="max-width: 300px;">{{ c.content[:100] }}{% if c.content|length > 100 %}…{% endif %}</td>
+        <td><a href="{{ url_for('post', slug=c.post_slug) }}" class="text-muted" target="_blank">{{ c.post_title[:30] }}</a></td>
+        <td><span class="status {{ c.status }}" id="c-status-{{ c.id }}">{{ c.status }}</span></td>
+        <td class="text-muted" style="white-space:nowrap;">{{ c.created_at[:10] }}</td>
+        <td>
+          <div class="actions">
+            {% if c.status == 'pending' %}
+            <button class="action-btn approve" onclick="approveComment({{ c.id }})">✅ Approve</button>
+            {% endif %}
+            <button class="action-btn delete" onclick="deleteComment({{ c.id }})">🗑️ Delete</button>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      {% if not comments %}
+      <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">💬</div><h3>No comments yet</h3></div></td></tr>
+      {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function approveComment(id) {
+  await fetch(`/admin/comments/${id}/approve`, { method: 'POST' });
+  document.getElementById(`c-status-${id}`).className = 'status approved';
+  document.getElementById(`c-status-${id}`).textContent = 'approved';
+  document.querySelector(`#comment-${id} .approve`)?.remove();
+}
+async function deleteComment(id) {
+  if (!confirm('Delete this comment?')) return;
+  await fetch(`/admin/comments/${id}/delete`, { method: 'POST' });
+  document.getElementById(`comment-${id}`)?.remove();
+}
+</script>
+{% endblock %}

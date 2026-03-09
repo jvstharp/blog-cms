@@ -1,0 +1,394 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'Edit Post' if post else 'New Post' }}{% endblock %}
+{% block page_title %}{{ 'Edit Post' if post else 'New Post' }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ 'Edit Post' if post else 'New Post' }}</h1>
+    {% if post %}<p>Last updated: {{ post.updated_at[:16] }}</p>{% endif %}
+  </div>
+  <div class="header-actions">
+    <a href="{{ url_for('admin_posts') }}" class="btn btn-secondary">← Back</a>
+    {% if post %}
+    <a href="{{ url_for('post', slug=post.slug) }}" class="btn btn-secondary" target="_blank">👁️ Preview</a>
+    {% endif %}
+  </div>
+</div>
+
+<form method="post" id="postForm">
+  <div class="form-grid">
+    <!-- Main column -->
+    <div>
+      <!-- Title -->
+      <div class="form-group">
+        <label class="form-label">Title *</label>
+        <input class="form-control" name="title" id="titleInput" required
+               value="{{ post.title if post else '' }}"
+               placeholder="Enter post title…" style="font-size: 1.1rem; font-weight: 600;">
+      </div>
+
+      <!-- Slug -->
+      <div class="form-group">
+        <label class="form-label">URL Slug</label>
+        <div style="display:flex; gap: 8px; align-items: center;">
+          <span class="text-muted" style="font-size: .8rem; white-space: nowrap;">/post/</span>
+          <input class="form-control" name="slug" id="slugInput"
+                 value="{{ post.slug if post else '' }}"
+                 placeholder="auto-generated-from-title">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="regenerateSlug()">↻</button>
+        </div>
+      </div>
+
+      <!-- Editor tabs -->
+      <div class="form-group">
+        <label class="form-label">Content *</label>
+        <div class="tabs" style="margin-bottom: 0;">
+          <button type="button" class="tab-btn active" data-tab="write" onclick="switchTab('write', this)">✏️ Write</button>
+          <button type="button" class="tab-btn" data-tab="preview" onclick="switchTab('preview', this)">👁️ Preview</button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="editor-toolbar">
+          <button type="button" class="editor-btn" onclick="fmt('**', '**')" title="Bold"><strong>B</strong></button>
+          <button type="button" class="editor-btn" onclick="fmt('*', '*')" title="Italic"><em>I</em></button>
+          <button type="button" class="editor-btn" onclick="fmt('~~', '~~')" title="Strike"><s>S</s></button>
+          <div class="editor-divider"></div>
+          <button type="button" class="editor-btn" onclick="fmtLine('# ')" title="H1">H1</button>
+          <button type="button" class="editor-btn" onclick="fmtLine('## ')" title="H2">H2</button>
+          <button type="button" class="editor-btn" onclick="fmtLine('### ')" title="H3">H3</button>
+          <div class="editor-divider"></div>
+          <button type="button" class="editor-btn" onclick="fmtLine('- ')" title="List">≡</button>
+          <button type="button" class="editor-btn" onclick="fmtLine('> ')" title="Quote">❝</button>
+          <button type="button" class="editor-btn" onclick="fmt('`', '`')" title="Code">&lt;/&gt;</button>
+          <button type="button" class="editor-btn" onclick="fmtBlock('```\n', '\n```')" title="Code Block">{ }</button>
+          <div class="editor-divider"></div>
+          <button type="button" class="editor-btn" onclick="insertLink()" title="Link">🔗</button>
+          <button type="button" class="editor-btn" onclick="insertImage()" title="Image">🖼️</button>
+          <div class="editor-divider"></div>
+          <button type="button" class="editor-btn" onclick="fmtLine('---')" title="Divider">—</button>
+        </div>
+
+        <div class="tab-panel active" id="tab-write">
+          <textarea class="form-control" name="content" id="content" required
+                    placeholder="Write your post content in Markdown…">{{ post.content if post else '' }}</textarea>
+        </div>
+        <div class="tab-panel" id="tab-preview">
+          <div class="preview-panel" id="previewContent" style="min-height: 400px;">
+            <p class="text-muted">Switch to Preview tab to see rendered content.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Excerpt -->
+      <div class="form-group">
+        <label class="form-label">Excerpt <small>(auto-generated if blank)</small></label>
+        <textarea class="form-control" name="excerpt" rows="2"
+                  placeholder="Short description shown in post listings…">{{ post.excerpt if post else '' }}</textarea>
+      </div>
+    </div>
+
+    <!-- Sidebar column -->
+    <div>
+      <!-- Publish box -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card-header"><h3>Publish</h3></div>
+        <div class="card-body">
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-control" name="status">
+              <option value="draft" {% if not post or post.status == 'draft' %}selected{% endif %}>📄 Draft</option>
+              <option value="published" {% if post and post.status == 'published' %}selected{% endif %}>🌐 Published</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;">
+            💾 {{ 'Update Post' if post else 'Save Post' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Featured image -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card-header"><h3>Featured Image</h3></div>
+        <div class="card-body">
+          <input class="form-control" name="featured_image" id="featuredImageInput"
+                 value="{{ post.featured_image if post else '' }}"
+                 placeholder="filename.jpg" style="margin-bottom: 10px;">
+          {% if post and post.featured_image %}
+          <img src="{{ url_for('static', filename='uploads/' + post.featured_image) }}"
+               style="width:100%; border-radius: 6px; margin-bottom: 8px;" id="featuredPreview">
+          {% else %}
+          <img src="" style="width:100%; border-radius: 6px; display:none; margin-bottom: 8px;" id="featuredPreview">
+          {% endif %}
+          <button type="button" class="btn btn-secondary btn-sm" style="width:100%;"
+                  onclick="openMediaPicker()">🖼️ Choose from Media</button>
+        </div>
+      </div>
+
+      <!-- Categories -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card-header"><h3>Categories</h3></div>
+        <div class="card-body">
+          <ul class="check-list">
+            {% for cat in categories %}
+            <li>
+              <label>
+                <input type="checkbox" name="categories" value="{{ cat.id }}"
+                       {% if cat.id in selected_cats %}checked{% endif %}>
+                {{ cat.name }}
+              </label>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+
+      <!-- Tags -->
+      <div class="card">
+        <div class="card-header"><h3>Tags</h3></div>
+        <div class="card-body">
+          <input class="form-control" name="tags_input" id="tagsInput"
+                 value="{{ selected_tags_str if selected_tags_str else '' }}"
+                 placeholder="tech, tutorial, python">
+          <div class="form-hint">Comma-separated. New tags are created automatically.</div>
+          <div id="tagSuggestions" style="display:flex; flex-wrap:wrap; gap:4px; margin-top:8px;">
+            {% for tag in tags %}
+            <span class="tag-suggest" data-name="{{ tag.name }}"
+                  style="padding: 2px 8px; border-radius: 50px; background: #334155; font-size: .75rem; cursor: pointer; color: #94a3b8; border: 1px solid #475569;">
+              {{ tag.name }}
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<!-- Media picker modal -->
+<div id="mediaModal" class="modal-backdrop">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>🖼️ Media Library</h3>
+      <button class="modal-close" onclick="closeMediaPicker()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Upload bar -->
+      <div class="modal-upload-bar" onclick="document.getElementById('modalFileInput').click()">
+        <span>⬆️ Upload new image</span>
+        <span class="modal-upload-status" id="modalUploadStatus"></span>
+        <input type="file" id="modalFileInput" accept="image/*" multiple style="display:none;">
+      </div>
+      <!-- Grid -->
+      <div class="media-grid" id="modalMediaGrid"></div>
+    </div>
+    <div class="modal-footer" id="modalFooterHint">Click an image to select it.</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ── Tag pre-fill ──────────────────────────────────────────────────
+(function() {
+  const selected = {{ selected_tags | tojson }};
+  if (selected.length) {
+    const allTags = [...document.querySelectorAll('.tag-suggest')].filter(t => {
+      // We'll get names from tags list
+      return true;
+    });
+    // We need tag names for selected IDs — pre-filled by server
+  }
+})();
+
+// Pre-fill tag names from server
+const tagNamesMap = {
+  {% for tag in tags %}
+  {{ tag.id }}: "{{ tag.name }}",
+  {% endfor %}
+};
+const selectedTagIds = {{ selected_tags | tojson }};
+if (selectedTagIds.length && !document.getElementById('tagsInput').value) {
+  document.getElementById('tagsInput').value = selectedTagIds.map(id => tagNamesMap[id]).filter(Boolean).join(', ');
+}
+
+// Tag suggest clicks
+document.querySelectorAll('.tag-suggest').forEach(el => {
+  el.addEventListener('click', () => {
+    const input = document.getElementById('tagsInput');
+    const current = input.value.split(',').map(t => t.trim()).filter(Boolean);
+    const name = el.dataset.name;
+    if (!current.includes(name)) {
+      current.push(name);
+      input.value = current.join(', ');
+      el.style.background = '#3b4a6b';
+      el.style.color = '#818cf8';
+    }
+  });
+});
+
+// ── Slug ─────────────────────────────────────────────────────────
+document.getElementById('titleInput').addEventListener('input', async function() {
+  const slugEl = document.getElementById('slugInput');
+  if (!slugEl.dataset.manuallySet) {
+    const res = await fetch(`/admin/api/slug?title=${encodeURIComponent(this.value)}`);
+    const data = await res.json();
+    slugEl.value = data.slug;
+  }
+});
+document.getElementById('slugInput').addEventListener('input', function() {
+  this.dataset.manuallySet = '1';
+});
+async function regenerateSlug() {
+  const title = document.getElementById('titleInput').value;
+  const res = await fetch(`/admin/api/slug?title=${encodeURIComponent(title)}`);
+  const data = await res.json();
+  document.getElementById('slugInput').value = data.slug;
+  delete document.getElementById('slugInput').dataset.manuallySet;
+}
+
+// ── Editor tabs ───────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(`tab-${name}`).classList.add('active');
+  if (name === 'preview') renderPreview();
+}
+
+async function renderPreview() {
+  const content = document.getElementById('content').value;
+  const res = await fetch('/admin/api/preview', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({content})
+  });
+  if (res.ok) {
+    const data = await res.json();
+    document.getElementById('previewContent').innerHTML = data.html;
+  }
+}
+
+// ── Toolbar helpers ───────────────────────────────────────────────
+function fmt(before, after) {
+  const t = document.getElementById('content');
+  const s = t.selectionStart, e = t.selectionEnd;
+  const sel = t.value.slice(s, e) || 'text';
+  t.value = t.value.slice(0, s) + before + sel + after + t.value.slice(e);
+  t.focus(); t.selectionStart = s + before.length; t.selectionEnd = s + before.length + sel.length;
+}
+function fmtLine(prefix) {
+  const t = document.getElementById('content');
+  const s = t.selectionStart;
+  const lineStart = t.value.lastIndexOf('\n', s - 1) + 1;
+  t.value = t.value.slice(0, lineStart) + prefix + t.value.slice(lineStart);
+  t.focus();
+}
+function fmtBlock(before, after) {
+  const t = document.getElementById('content');
+  const s = t.selectionStart, e = t.selectionEnd;
+  const sel = t.value.slice(s, e) || 'code here';
+  t.value = t.value.slice(0, s) + before + sel + after + t.value.slice(e);
+  t.focus();
+}
+function insertLink() {
+  const url = prompt('Enter URL:', 'https://');
+  if (url) fmt('[', `](${url})`);
+}
+function insertImage() {
+  openMediaPicker(true);
+}
+
+// ── Featured image preview ────────────────────────────────────────
+document.getElementById('featuredImageInput').addEventListener('input', function() {
+  const prev = document.getElementById('featuredPreview');
+  if (this.value) {
+    prev.src = `/static/uploads/${this.value}`;
+    prev.style.display = 'block';
+  } else {
+    prev.style.display = 'none';
+  }
+});
+
+// ── Media picker ──────────────────────────────────────────────────
+let mediaPickerForContent = false;
+
+function makeMediaItem(src, filename) {
+  const div = document.createElement('div');
+  div.className = 'media-item';
+  div.innerHTML = `<img src="${src}" alt=""><div class="media-overlay"></div>`;
+  div.addEventListener('click', () => selectMedia(filename));
+  return div;
+}
+
+async function loadModalGrid() {
+  const grid = document.getElementById('modalMediaGrid');
+  grid.innerHTML = '<p class="text-muted">Loading…</p>';
+  const res = await fetch('/admin/media');
+  const html = await res.text();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const items = doc.querySelectorAll('.media-item img');
+  grid.innerHTML = '';
+  items.forEach(img => {
+    const fn = img.src.split('/uploads/')[1];
+    if (fn) grid.appendChild(makeMediaItem(img.src, fn));
+  });
+  if (!grid.children.length) {
+    grid.innerHTML = '<p class="text-muted" style="grid-column:1/-1;">No images yet — upload one above.</p>';
+  }
+}
+
+async function openMediaPicker(forContent = false) {
+  mediaPickerForContent = forContent;
+  document.getElementById('mediaModal').style.display = 'flex';
+  document.getElementById('modalFooterHint').textContent =
+    forContent ? 'Click an image to insert it into your content.' : 'Click an image to set it as the featured image.';
+  await loadModalGrid();
+}
+
+function selectMedia(filename) {
+  if (mediaPickerForContent) {
+    const t = document.getElementById('content');
+    const pos = t.selectionStart;
+    const insert = `![Image](/static/uploads/${filename})`;
+    t.value = t.value.slice(0, pos) + insert + t.value.slice(pos);
+  } else {
+    document.getElementById('featuredImageInput').value = filename;
+    const prev = document.getElementById('featuredPreview');
+    prev.src = `/static/uploads/${filename}`;
+    prev.style.display = 'block';
+  }
+  closeMediaPicker();
+}
+
+function closeMediaPicker() {
+  document.getElementById('mediaModal').style.display = 'none';
+}
+
+// Upload from modal
+document.getElementById('modalFileInput').addEventListener('change', async function() {
+  if (!this.files.length) return;
+  const status = document.getElementById('modalUploadStatus');
+  status.textContent = '⏳ Uploading…';
+  const formData = new FormData();
+  for (const f of this.files) formData.append('files', f);
+  const res = await fetch('/admin/media/upload', { method: 'POST', body: formData });
+  const data = await res.json();
+  status.textContent = `✅ ${data.uploaded.length} uploaded`;
+  setTimeout(() => status.textContent = '', 3000);
+  this.value = '';
+  // Prepend newly uploaded items to grid
+  const grid = document.getElementById('modalMediaGrid');
+  const empty = grid.querySelector('p');
+  if (empty) grid.innerHTML = '';
+  data.uploaded.forEach(file => {
+    grid.prepend(makeMediaItem(file.url, file.filename));
+  });
+});
+
+document.getElementById('mediaModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('mediaModal')) closeMediaPicker();
+});
+</script>
+{% endblock %}

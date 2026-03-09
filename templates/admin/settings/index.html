@@ -1,0 +1,102 @@
+{% extends "admin/base.html" %}
+{% block title %}Settings{% endblock %}
+{% block page_title %}Settings{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Site Settings</h1>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+    <!-- General -->
+    <div class="card">
+      <div class="card-header"><h3>🌐 General</h3></div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Site Name</label>
+          <input class="form-control" name="site_name" value="{{ settings.get('site_name', '') }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tagline</label>
+          <input class="form-control" name="site_tagline" value="{{ settings.get('site_tagline', '') }}" placeholder="Welcome to My Blog">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" name="site_description" rows="3">{{ settings.get('site_description', '') }}</textarea>
+          <div class="form-hint">Used for SEO and the hero section.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Footer Text</label>
+          <input class="form-control" name="footer_text" value="{{ settings.get('footer_text', '') }}">
+        </div>
+      </div>
+    </div>
+
+    <!-- Reading & Comments -->
+    <div>
+      <div class="card" style="margin-bottom: 20px;">
+        <div class="card-header"><h3>📖 Reading</h3></div>
+        <div class="card-body">
+          <div class="form-group">
+            <label class="form-label">Posts per page</label>
+            <select class="form-control" name="posts_per_page">
+              {% for n in [3, 6, 9, 12, 15] %}
+              <option value="{{ n }}" {% if settings.get('posts_per_page') == n|string %}selected{% endif %}>{{ n }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Allow Comments</label>
+            <select class="form-control" name="allow_comments">
+              <option value="1" {% if settings.get('allow_comments') == '1' %}selected{% endif %}>Yes</option>
+              <option value="0" {% if settings.get('allow_comments') == '0' %}selected{% endif %}>No</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Social links -->
+      <div class="card">
+        <div class="card-header"><h3>🔗 Social Links</h3></div>
+        <div class="card-body">
+          <div class="form-group">
+            <label class="form-label">Twitter / X URL</label>
+            <input class="form-control" name="social_twitter" value="{{ settings.get('social_twitter', '') }}" placeholder="https://twitter.com/…">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Instagram URL</label>
+            <input class="form-control" name="social_instagram" value="{{ settings.get('social_instagram', '') }}" placeholder="https://instagram.com/…">
+          </div>
+          <div class="form-group">
+            <label class="form-label">LinkedIn URL</label>
+            <input class="form-control" name="social_linkedin" value="{{ settings.get('social_linkedin', '') }}" placeholder="https://linkedin.com/in/…">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logo -->
+  <div class="card" style="margin-top: 24px;">
+    <div class="card-header"><h3>🖼️ Site Logo</h3></div>
+    <div class="card-body" style="display: flex; align-items: center; gap: 24px; flex-wrap: wrap;">
+      {% if settings.get('site_logo') %}
+      <img src="{{ url_for('static', filename='uploads/' + settings.get('site_logo')) }}"
+           alt="Current logo" style="height: 48px; object-fit: contain; border: 1px solid #eee; border-radius: 6px; padding: 4px; background:#fff;">
+      {% else %}
+      <div style="color: #aaa; font-size: 13px;">No logo uploaded — the site name text is used.</div>
+      {% endif %}
+      <div class="form-group" style="margin: 0; flex: 1; min-width: 200px;">
+        <label class="form-label">Upload Logo (PNG, JPG, SVG, WebP)</label>
+        <input class="form-control" type="file" name="site_logo" accept="image/*">
+        <div class="form-hint">Replaces the site name text in the header and footer.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top: 20px;">
+    <button class="btn btn-primary" type="submit">💾 Save Settings</button>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends "admin/base.html" %}
+{% block title %}Posts{% endblock %}
+{% block page_title %}Posts{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Posts</h1>
+    <p>{{ total }} post{% if total != 1 %}s{% endif %} total</p>
+  </div>
+  <div class="header-actions">
+    <a href="{{ url_for('admin_post_new') }}" class="btn btn-primary">+ New Post</a>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filters">
+  <div class="filter-tabs">
+    <a href="{{ url_for('admin_posts') }}" class="filter-tab {% if not status_filter %}active{% endif %}">All</a>
+    <a href="{{ url_for('admin_posts', status='published') }}" class="filter-tab {% if status_filter == 'published' %}active{% endif %}">Published</a>
+    <a href="{{ url_for('admin_posts', status='draft') }}" class="filter-tab {% if status_filter == 'draft' %}active{% endif %}">Drafts</a>
+  </div>
+  <form style="display:flex; gap: 8px; margin-left: auto;">
+    {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+    <input class="filter-input" name="q" value="{{ search }}" placeholder="Search posts…">
+    <button class="btn btn-secondary btn-sm" type="submit">Search</button>
+    {% if search %}<a href="{{ url_for('admin_posts', status=status_filter) }}" class="btn btn-secondary btn-sm">✕ Clear</a>{% endif %}
+  </form>
+</div>
+
+<div class="card">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Author</th>
+          <th>Status</th>
+          <th>Featured</th>
+          <th>Views</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for post in posts %}
+        <tr>
+          <td>
+            <div class="post-title-cell">
+              <strong>{{ post.title[:60] }}{% if post.title|length > 60 %}…{% endif %}</strong>
+              <small>/post/{{ post.slug }}</small>
+            </div>
+          </td>
+          <td class="text-muted">{{ post.author_name or '—' }}</td>
+          <td>
+            <span class="status {{ post.status }}" id="status-{{ post.id }}">{{ post.status }}</span>
+          </td>
+          <td>
+            <button class="action-btn feature-btn{% if post.is_featured %} featured{% endif %}"
+                    id="feature-{{ post.id }}"
+                    onclick="toggleFeatured({{ post.id }}, this)"
+                    title="{% if post.is_featured %}Remove featured{% else %}Set as featured{% endif %}">
+              {% if post.is_featured %}⭐ Featured{% else %}☆ Feature{% endif %}
+            </button>
+          </td>
+          <td class="text-muted">{{ post.views }}</td>
+          <td class="text-muted" style="white-space: nowrap;">
+            {{ post.published_at[:10] if post.published_at else post.created_at[:10] }}
+          </td>
+          <td>
+            <div class="actions">
+              <a href="{{ url_for('post', slug=post.slug) }}" class="action-btn view" target="_blank" title="View">👁️</a>
+              <a href="{{ url_for('admin_post_edit', post_id=post.id) }}" class="action-btn edit">✏️ Edit</a>
+              <button class="action-btn toggle {% if post.status == 'published' %}active{% else %}inactive{% endif %}"
+                      onclick="toggleStatus({{ post.id }}, this)" title="Toggle status">
+                {% if post.status == 'published' %}⬇️ Unpublish{% else %}⬆️ Publish{% endif %}
+              </button>
+              <form method="post" action="{{ url_for('admin_post_delete', post_id=post.id) }}" style="display:inline;">
+                <button class="action-btn delete"
+                        onclick="return confirm('Delete \'{{ post.title }}\'? This cannot be undone.')">🗑️ Delete</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not posts %}
+        <tr>
+          <td colspan="6">
+            <div class="empty-state">
+              <div class="empty-icon">📝</div>
+              <h3>No posts found</h3>
+              <p><a href="{{ url_for('admin_post_new') }}" class="btn btn-primary" style="margin-top:12px;">Write your first post</a></p>
+            </div>
+          </td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if pages > 1 %}
+<div class="pagination">
+  {% if page > 1 %}<a class="page-btn" href="?page={{ page-1 }}&status={{ status_filter }}&q={{ search }}">← Prev</a>{% endif %}
+  {% for p in range(1, pages+1) %}
+  <a class="page-btn {% if p == page %}active{% endif %}" href="?page={{ p }}&status={{ status_filter }}&q={{ search }}">{{ p }}</a>
+  {% endfor %}
+  {% if page < pages %}<a class="page-btn" href="?page={{ page+1 }}&status={{ status_filter }}&q={{ search }}">Next →</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function toggleStatus(postId, btn) {
+  const res = await fetch(`/admin/posts/${postId}/toggle-status`, { method: 'POST' });
+  const data = await res.json();
+  const badge = document.getElementById(`status-${postId}`);
+  badge.className = `status ${data.status}`;
+  badge.textContent = data.status;
+  if (data.status === 'published') {
+    btn.className = 'action-btn toggle active';
+    btn.textContent = '⬇️ Unpublish';
+  } else {
+    btn.className = 'action-btn toggle inactive';
+    btn.textContent = '⬆️ Publish';
+  }
+}
+
+async function toggleFeatured(postId, btn) {
+  const res = await fetch(`/admin/posts/${postId}/toggle-featured`, { method: 'POST' });
+  const data = await res.json();
+  // Unmark all other feature buttons
+  document.querySelectorAll('.feature-btn').forEach(b => {
+    b.classList.remove('featured');
+    b.textContent = '☆ Feature';
+    b.title = 'Set as featured';
+  });
+  if (data.is_featured) {
+    btn.classList.add('featured');
+    btn.textContent = '⭐ Featured';
+    btn.title = 'Remove featured';
+  }
+}
+</script>
+{% endblock %}

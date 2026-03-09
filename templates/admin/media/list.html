@@ -1,0 +1,100 @@
+{% extends "admin/base.html" %}
+{% block title %}Media Library{% endblock %}
+{% block page_title %}Media Library{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Media Library</h1>
+    <p class="text-muted">{{ media|length }} files uploaded</p>
+  </div>
+</div>
+
+<!-- Upload zone -->
+<div class="upload-zone" id="uploadZone">
+  <div class="upload-icon">🖼️</div>
+  <p style="font-weight: 600; margin-bottom: 6px;">Drop images here or click to upload</p>
+  <p class="text-muted" style="font-size: .85rem;">PNG, JPG, GIF, WebP — max 10 MB each</p>
+  <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
+</div>
+<div id="uploadProgress" style="margin-bottom: 16px;"></div>
+
+<!-- Media grid -->
+{% if media %}
+<div class="media-grid" id="mediaGrid">
+  {% for item in media %}
+  <div class="media-item" id="media-{{ item.id }}">
+    <img src="{{ url_for('static', filename='uploads/' + item.filename) }}"
+         alt="{{ item.original_name }}" loading="lazy">
+    <div class="media-overlay">
+      <button class="btn btn-secondary btn-sm" onclick="copyUrl('{{ url_for('static', filename='uploads/' + item.filename) }}')">📋 Copy URL</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteMedia({{ item.id }})">🗑️</button>
+    </div>
+    <div class="media-caption">{{ item.original_name or item.filename }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state" id="emptyState">
+  <div class="empty-icon">🖼️</div>
+  <h3>No media yet</h3>
+  <p>Upload images to use them in your posts.</p>
+</div>
+{% endif %}
+<div class="media-grid" id="newMediaGrid"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  uploadFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', () => uploadFiles(fileInput.files));
+
+async function uploadFiles(files) {
+  const formData = new FormData();
+  for (const f of files) formData.append('files', f);
+  const progress = document.getElementById('uploadProgress');
+  progress.innerHTML = '<p class="text-muted">⏳ Uploading…</p>';
+  const res = await fetch('/admin/media/upload', { method: 'POST', body: formData });
+  const data = await res.json();
+  progress.innerHTML = `<p class="text-muted" style="color: #10b981;">✅ ${data.uploaded.length} file(s) uploaded!</p>`;
+  setTimeout(() => progress.innerHTML = '', 3000);
+  document.getElementById('emptyState')?.remove();
+  const grid = document.getElementById('newMediaGrid') || document.getElementById('mediaGrid');
+  data.uploaded.forEach(file => {
+    const div = document.createElement('div');
+    div.className = 'media-item';
+    div.innerHTML = `
+      <img src="${file.url}" alt="${file.filename}" loading="lazy">
+      <div class="media-overlay">
+        <button class="btn btn-secondary btn-sm" onclick="copyUrl('${file.url}')">📋 Copy URL</button>
+      </div>
+      <div class="media-caption">${file.filename}</div>
+    `;
+    grid.prepend(div);
+  });
+}
+
+function copyUrl(url) {
+  navigator.clipboard.writeText(window.location.origin + url);
+  const old = event.target.textContent;
+  event.target.textContent = '✅ Copied!';
+  setTimeout(() => event.target.textContent = old, 1500);
+}
+
+async function deleteMedia(id) {
+  if (!confirm('Delete this image permanently?')) return;
+  const res = await fetch(`/admin/media/${id}/delete`, { method: 'POST' });
+  if (res.ok) document.getElementById(`media-${id}`)?.remove();
+}
+</script>
+{% endblock %}
