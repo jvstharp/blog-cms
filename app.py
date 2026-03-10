@@ -1,9 +1,11 @@
 import os
 import io
+import json
 import zipfile
 import hashlib
 import re
 import uuid
+import atexit
 from datetime import datetime
 from functools import wraps
 from flask import (Flask, render_template, request, redirect, url_for,
@@ -13,6 +15,22 @@ from slugify import slugify
 import markdown as md
 
 from database import get_db, init_db, get_setting, get_all_settings
+
+# Google Drive (optional — only active when env vars are set)
+try:
+    from googleapiclient.discovery import build as gdrive_build
+    from googleapiclient.http import MediaIoBaseUpload
+    from google.oauth2.service_account import Credentials as ServiceAccountCredentials
+    GDRIVE_AVAILABLE = True
+except ImportError:
+    GDRIVE_AVAILABLE = False
+
+# Background scheduler for weekly Drive backup
+try:
+    from apscheduler.schedulers.background import BackgroundScheduler
+    SCHEDULER_AVAILABLE = True
+except ImportError:
+    SCHEDULER_AVAILABLE = False
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(32).hex())
@@ -738,7 +756,13 @@ def admin_settings():
         flash('Settings saved!', 'success')
         return redirect(url_for('admin_settings'))
     settings = get_all_settings()
-    return render_template('admin/settings/index.html', settings=settings)
+    drive_configured = bool(
+        os.environ.get('GOOGLE_CREDENTIALS_JSON') and
+        os.environ.get('GOOGLE_DRIVE_FOLDER_ID')
+    )
+    return render_template('admin/settings/index.html',
+                           settings=settings,
+                           drive_configured=drive_configured)
 
 
 # ── Admin Backup ───────────────────────────────────────────────────────────
@@ -806,6 +830,76 @@ def admin_backup_restore():
     else:
         flash('Please upload a .zip backup file (or a legacy .db file).', 'error')
 
+    return redirect(url_for('admin_settings'))
+
+
+# ── Google Drive Backup ─────────────────────────────────────────────────────
+
+def _build_backup_zip():
+    """Return an in-memory BytesIO ZIP of the DB + uploads folder."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+        zf.write(DB_PATH, arcname='blog.db')
+        for root, _, files in os.walk(UPLOAD_FOLDER):
+            for fname in files:
+                full = os.path.join(root, fname)
+                arcname = os.path.relpath(full, os.path.dirname(UPLOAD_FOLDER))
+                zf.write(full, arcname=arcname)
+    buf.seek(0)
+    return buf
+
+
+def backup_to_drive():
+    """Upload a backup ZIP to Google Drive. Returns (ok: bool, message: str)."""
+    if not GDRIVE_AVAILABLE:
+        return False, 'Google Drive library not installed.'
+
+    creds_json = os.environ.get('GOOGLE_CREDENTIALS_JSON', '').strip()
+    folder_id  = os.environ.get('GOOGLE_DRIVE_FOLDER_ID', '').strip()
+
+    if not creds_json or not folder_id:
+        return False, 'GOOGLE_CREDENTIALS_JSON or GOOGLE_DRIVE_FOLDER_ID env var not set.'
+
+    try:
+        creds_data = json.loads(creds_json)
+    except json.JSONDecodeError:
+        return False, 'GOOGLE_CREDENTIALS_JSON is not valid JSON.'
+
+    try:
+        creds = ServiceAccountCredentials.from_service_account_info(
+            creds_data,
+            scopes=['https://www.googleapis.com/auth/drive.file']
+        )
+        service = gdrive_build('drive', 'v3', credentials=creds, cache_discovery=False)
+
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename  = f'blog_backup_{timestamp}.zip'
+        buf = _build_backup_zip()
+
+        file_metadata = {'name': filename, 'parents': [folder_id]}
+        media = MediaIoBaseUpload(buf, mimetype='application/zip', resumable=False)
+        service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+
+        # Store last backup timestamp in settings
+        conn = get_db()
+        conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('last_drive_backup', ?)",
+                     (datetime.now().strftime('%Y-%m-%d %H:%M'),))
+        conn.commit()
+        conn.close()
+
+        return True, filename
+    except Exception as e:
+        return False, str(e)
+
+
+@app.route('/admin/backup/send-to-drive', methods=['POST'])
+@login_required
+def admin_backup_send_to_drive():
+    ok, result = backup_to_drive()
+    if ok:
+        flash(f'✅ Backup uploaded to Google Drive: {result}', 'success')
+    else:
+        flash(f'❌ Drive backup failed: {result}', 'error')
     return redirect(url_for('admin_settings'))
 
 
@@ -983,6 +1077,27 @@ def uploaded_file(filename):
 @app.errorhandler(404)
 def not_found(e):
     return render_template('404.html'), 404
+
+
+# ── Weekly Google Drive backup scheduler ────────────────────────────────────
+# Fires every Sunday at 02:00. Only active when GOOGLE_CREDENTIALS_JSON is set.
+# NOTE: Render free tier spins down after inactivity — if the app is asleep at
+# 02:00 Sunday the job won't fire. Upgrade to Render's paid cron job or use
+# cron-job.org to hit /admin/backup/send-to-drive for 100% reliability.
+
+if SCHEDULER_AVAILABLE and os.environ.get('GOOGLE_CREDENTIALS_JSON'):
+    _scheduler = BackgroundScheduler(daemon=True)
+    _scheduler.add_job(
+        func=backup_to_drive,
+        trigger='cron',
+        day_of_week='sun',
+        hour=2,
+        minute=0,
+        id='weekly_drive_backup',
+        replace_existing=True,
+    )
+    _scheduler.start()
+    atexit.register(lambda: _scheduler.shutdown(wait=False))
 
 
 if __name__ == '__main__':

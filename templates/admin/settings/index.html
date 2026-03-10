@@ -121,4 +121,44 @@
     </div>
   </div>
 </div>
+
+<!-- Google Drive Auto-Backup -->
+<div class="card" style="margin-top: 24px;">
+  <div class="card-header" style="display:flex; align-items:center; justify-content:space-between;">
+    <h3>☁️ Google Drive Backup</h3>
+    {% if settings.get('last_drive_backup') %}
+    <span style="font-size:12px; color:var(--text-muted);">
+      Last backup: {{ settings.get('last_drive_backup') }}
+    </span>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    {% set drive_ready = drive_configured %}
+    <p style="color: var(--text-muted); font-size: 14px; margin: 0 0 16px;">
+      Automatically backs up to your Google Drive every <strong>Sunday at 2 AM</strong>.
+      You can also trigger a backup manually at any time.
+    </p>
+
+    {% if not drive_ready %}
+    <div style="background: #fff8e7; border: 1px solid #f59e0b; border-radius: 8px;
+                padding: 14px 16px; margin-bottom: 16px; font-size: 13px;">
+      ⚠️ <strong>Not configured yet.</strong>
+      Add <code>GOOGLE_CREDENTIALS_JSON</code> and <code>GOOGLE_DRIVE_FOLDER_ID</code>
+      as environment variables in your Render dashboard to enable Drive backups.
+    </div>
+    {% else %}
+    <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px;
+                padding: 14px 16px; margin-bottom: 16px; font-size: 13px;">
+      ✅ <strong>Google Drive connected.</strong> Weekly auto-backup is active.
+    </div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('admin_backup_send_to_drive') }}">
+      <button type="submit" class="btn btn-primary"
+              {% if not drive_ready %}disabled title="Configure env vars first"{% endif %}>
+        📤 Send Backup to Drive Now
+      </button>
+    </form>
+  </div>
+</div>
 {% endblock %}
