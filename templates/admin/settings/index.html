@@ -99,4 +99,26 @@
     <button class="btn btn-primary" type="submit">💾 Save Settings</button>
   </div>
 </form>
+
+<!-- Database Backup -->
+<div class="card" style="margin-top: 24px;">
+  <div class="card-header"><h3>🗄️ Database Backup</h3></div>
+  <div class="card-body">
+    <p style="color: var(--text-muted); font-size: 14px; margin: 0 0 20px;">
+      Download a copy of your database before redeploying. To restore, upload a previously downloaded <code>.db</code> file.
+    </p>
+    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+      <a href="{{ url_for('admin_backup_download') }}" class="btn btn-secondary">⬇️ Download Backup</a>
+      <form method="post" action="{{ url_for('admin_backup_restore') }}" enctype="multipart/form-data"
+            style="display: flex; gap: 10px; align-items: center;">
+        <input type="file" name="backup_file" accept=".db" required
+               style="font-size: 13px; color: var(--text-muted);">
+        <button type="submit" class="btn btn-primary"
+                onclick="return confirm('This will replace all current data with the backup. Are you sure?')">
+          ⬆️ Restore Backup
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}

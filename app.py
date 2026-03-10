@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 from functools import wraps
 from flask import (Flask, render_template, request, redirect, url_for,
-                   session, flash, jsonify, abort, send_from_directory)
+                   session, flash, jsonify, abort, send_from_directory, send_file)
 from werkzeug.utils import secure_filename
 from slugify import slugify
 import markdown as md
@@ -737,6 +737,36 @@ def admin_settings():
         return redirect(url_for('admin_settings'))
     settings = get_all_settings()
     return render_template('admin/settings/index.html', settings=settings)
+
+
+# ── Admin Backup ───────────────────────────────────────────────────────────
+
+DB_PATH = os.path.join(os.path.dirname(__file__), 'blog.db')
+
+@app.route('/admin/backup/download')
+@login_required
+def admin_backup_download():
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    return send_file(DB_PATH, as_attachment=True,
+                     download_name=f'blog_backup_{timestamp}.db',
+                     mimetype='application/octet-stream')
+
+@app.route('/admin/backup/restore', methods=['POST'])
+@login_required
+def admin_backup_restore():
+    f = request.files.get('backup_file')
+    if not f or not f.filename.endswith('.db'):
+        flash('Please upload a valid .db backup file.', 'error')
+        return redirect(url_for('admin_settings'))
+    # Validate it's a real SQLite file
+    header = f.read(16)
+    if header[:16] != b'SQLite format 3\x00':
+        flash('Invalid database file — not a SQLite database.', 'error')
+        return redirect(url_for('admin_settings'))
+    f.seek(0)
+    f.save(DB_PATH)
+    flash('Database restored successfully! All data from the backup is now live.', 'success')
+    return redirect(url_for('admin_settings'))
 
 
 # ── Admin Profile ──────────────────────────────────────────────────────────
