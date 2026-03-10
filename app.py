@@ -1,4 +1,6 @@
 import os
+import io
+import zipfile
 import hashlib
 import re
 import uuid
@@ -747,25 +749,63 @@ DB_PATH = os.path.join(os.path.dirname(__file__), 'blog.db')
 @login_required
 def admin_backup_download():
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    return send_file(DB_PATH, as_attachment=True,
-                     download_name=f'blog_backup_{timestamp}.db',
-                     mimetype='application/octet-stream')
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+        # Database
+        zf.write(DB_PATH, arcname='blog.db')
+        # All uploaded media (logo, post images, etc.)
+        for root, _, files in os.walk(UPLOAD_FOLDER):
+            for fname in files:
+                full = os.path.join(root, fname)
+                arcname = os.path.relpath(full, os.path.dirname(UPLOAD_FOLDER))
+                zf.write(full, arcname=arcname)
+    buf.seek(0)
+    return send_file(buf, as_attachment=True,
+                     download_name=f'blog_backup_{timestamp}.zip',
+                     mimetype='application/zip')
+
 
 @app.route('/admin/backup/restore', methods=['POST'])
 @login_required
 def admin_backup_restore():
     f = request.files.get('backup_file')
-    if not f or not f.filename.endswith('.db'):
-        flash('Please upload a valid .db backup file.', 'error')
+    if not f:
+        flash('No file uploaded.', 'error')
         return redirect(url_for('admin_settings'))
-    # Validate it's a real SQLite file
-    header = f.read(16)
-    if header[:16] != b'SQLite format 3\x00':
-        flash('Invalid database file — not a SQLite database.', 'error')
-        return redirect(url_for('admin_settings'))
-    f.seek(0)
-    f.save(DB_PATH)
-    flash('Database restored successfully! All data from the backup is now live.', 'success')
+
+    filename = f.filename or ''
+
+    if filename.endswith('.zip'):
+        data = f.read()
+        buf = io.BytesIO(data)
+        if not zipfile.is_zipfile(buf):
+            flash('Invalid ZIP file.', 'error')
+            return redirect(url_for('admin_settings'))
+        buf.seek(0)
+        base_dir = os.path.dirname(os.path.abspath(DB_PATH))
+        with zipfile.ZipFile(buf) as zf:
+            # Safety: block path traversal attacks
+            for member in zf.namelist():
+                target = os.path.normpath(os.path.join(base_dir, member))
+                if not target.startswith(base_dir):
+                    flash('Invalid backup contents.', 'error')
+                    return redirect(url_for('admin_settings'))
+            zf.extractall(base_dir)
+        flash('Full backup restored — database and all media files recovered!', 'success')
+
+    elif filename.endswith('.db'):
+        # Legacy .db-only backup — still supported
+        header = f.read(16)
+        if header[:16] != b'SQLite format 3\x00':
+            flash('Invalid database file — not a SQLite database.', 'error')
+            return redirect(url_for('admin_settings'))
+        f.seek(0)
+        f.save(DB_PATH)
+        flash('Database restored successfully!', 'success')
+
+    else:
+        flash('Please upload a .zip backup file (or a legacy .db file).', 'error')
+
     return redirect(url_for('admin_settings'))
 
 
