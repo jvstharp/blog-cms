@@ -636,6 +636,27 @@ def admin_comment_delete(comment_id):
     return jsonify({'ok': True})
 
 
+# ── Admin Subscribers ──────────────────────────────────────────────────────
+
+@app.route('/admin/subscribers')
+@login_required
+def admin_subscribers():
+    conn = get_db()
+    subscribers = conn.execute("SELECT * FROM subscribers ORDER BY created_at DESC").fetchall()
+    conn.close()
+    return render_template('admin/subscribers.html', subscribers=subscribers)
+
+
+@app.route('/admin/subscribers/<int:sub_id>/delete', methods=['POST'])
+@login_required
+def admin_subscriber_delete(sub_id):
+    conn = get_db()
+    conn.execute("DELETE FROM subscribers WHERE id=?", (sub_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True})
+
+
 # ── Admin Media ────────────────────────────────────────────────────────────
 
 @app.route('/admin/media')

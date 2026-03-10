@@ -1,0 +1,43 @@
+{% extends "admin/base.html" %}
+{% block title %}Subscribers{% endblock %}
+{% block page_title %}Subscribers{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Subscribers</h1>
+  <p class="text-muted">{{ subscribers|length }} total</p>
+</div>
+<div class="card">
+  <div class="table-wrapper">
+    <table>
+      <thead><tr><th>Email</th><th>Date Subscribed</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for s in subscribers %}
+      <tr id="subscriber-{{ s.id }}">
+        <td>{{ s.email }}</td>
+        <td class="text-muted" style="white-space:nowrap;">{{ s.created_at[:10] }}</td>
+        <td>
+          <div class="actions">
+            <button class="action-btn delete" onclick="deleteSubscriber({{ s.id }})">🗑️ Delete</button>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      {% if not subscribers %}
+      <tr><td colspan="3"><div class="empty-state"><div class="empty-icon">📭</div><h3>No subscribers yet</h3></div></td></tr>
+      {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function deleteSubscriber(id) {
+  if (!confirm('Remove this subscriber?')) return;
+  await fetch(`/admin/subscribers/${id}/delete`, { method: 'POST' });
+  document.getElementById(`subscriber-${id}`)?.remove();
+}
+</script>
+{% endblock %}
