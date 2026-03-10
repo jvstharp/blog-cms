@@ -43,9 +43,10 @@
 {% block extra_scripts %}
 <script>
 async function deleteTag(id, name, btn) {
-  if (!confirm(`Delete tag "${name}"?`)) return;
-  const res = await fetch(`/admin/tags/${id}/delete`, { method: 'POST' });
-  if (res.ok) btn.closest('tr').remove();
+  confirmAction(`Delete tag "${name}"?`, async () => {
+    const res = await fetch(`/admin/tags/${id}/delete`, { method: 'POST' });
+    if (res.ok) btn.closest('tr').remove();
+  });
 }
 </script>
 {% endblock %}

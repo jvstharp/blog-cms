@@ -128,6 +128,23 @@
   </div>
 </div>
 
+<!-- Shared confirm modal -->
+<div id="confirmModal" class="modal-backdrop">
+  <div class="modal-box modal-box-sm">
+    <div class="modal-header">
+      <h3 id="confirmTitle">Are you sure?</h3>
+      <button class="modal-close" onclick="closeConfirm()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirmMessage" style="color:var(--text-muted); font-size:14px; margin:0;"></p>
+    </div>
+    <div class="modal-footer" style="display:flex; gap:10px; justify-content:flex-end; padding-top:16px; padding-bottom:16px;">
+      <button class="btn btn-secondary" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger" id="confirmBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // Auto-hide flash messages
 setTimeout(() => {
@@ -138,12 +155,18 @@ setTimeout(() => {
   });
 }, 4000);
 
-// Confirm delete
-document.querySelectorAll('[data-confirm]').forEach(el => {
-  el.addEventListener('click', e => {
-    if (!confirm(el.dataset.confirm)) e.preventDefault();
-  });
-});
+// Styled confirm dialog
+function confirmAction(message, onConfirm, btnLabel = 'Delete') {
+  document.getElementById('confirmMessage').textContent = message;
+  document.getElementById('confirmBtn').textContent = btnLabel;
+  document.getElementById('confirmBtn').onclick = () => { closeConfirm(); onConfirm(); };
+  const modal = document.getElementById('confirmModal');
+  modal.style.display = 'flex';
+  modal.addEventListener('click', e => { if (e.target === modal) closeConfirm(); }, { once: true });
+}
+function closeConfirm() {
+  document.getElementById('confirmModal').style.display = 'none';
+}
 </script>
 {% block extra_scripts %}{% endblock %}
 </body>

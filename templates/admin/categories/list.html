@@ -26,9 +26,9 @@
               <div class="actions">
                 <a href="{{ url_for('category', slug=cat.slug) }}" class="action-btn view" target="_blank">👁️</a>
                 <button class="action-btn edit" onclick="openEditModal({{ cat.id }}, '{{ cat.name }}', '{{ cat.description or '' }}')">✏️ Edit</button>
-                <form method="post" action="{{ url_for('admin_category_delete', cat_id=cat.id) }}" style="display:inline;">
-                  <button class="action-btn delete"
-                          onclick="return confirm('Delete category \'{{ cat.name }}\'?')">🗑️ Delete</button>
+                <form method="post" action="{{ url_for('admin_category_delete', cat_id=cat.id) }}" style="display:inline;" id="del-cat-{{ cat.id }}">
+                  <button type="button" class="action-btn delete"
+                          onclick="confirmAction('Delete category &quot;{{ cat.name }}&quot;?', () => document.getElementById('del-cat-{{ cat.id }}').submit())">🗑️ Delete</button>
                 </form>
               </div>
             </td>
@@ -65,23 +65,28 @@
 </div>
 
 <!-- Edit modal -->
-<div id="editModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1000; align-items:center; justify-content:center;">
-  <div style="background:#1e293b; border-radius: 12px; padding: 28px; width: 400px; max-width: 95vw; border: 1px solid #334155;">
-    <h3 style="margin-bottom: 20px;">Edit Category</h3>
-    <form method="post" id="editForm">
-      <div class="form-group">
-        <label class="form-label">Name</label>
-        <input class="form-control" name="name" id="editName" required>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Description</label>
-        <textarea class="form-control" name="description" id="editDesc" rows="3"></textarea>
-      </div>
-      <div style="display:flex; gap:10px; justify-content:flex-end;">
-        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
-        <button type="submit" class="btn btn-primary">Save</button>
-      </div>
-    </form>
+<div id="editModal" class="modal-backdrop">
+  <div class="modal-box modal-box-sm">
+    <div class="modal-header">
+      <h3>Edit Category</h3>
+      <button type="button" class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form method="post" id="editForm">
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input class="form-control" name="name" id="editName" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" name="description" id="editDesc" rows="3"></textarea>
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
+          <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}

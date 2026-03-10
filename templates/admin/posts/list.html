@@ -75,9 +75,9 @@
                       onclick="toggleStatus({{ post.id }}, this)" title="Toggle status">
                 {% if post.status == 'published' %}⬇️ Unpublish{% else %}⬆️ Publish{% endif %}
               </button>
-              <form method="post" action="{{ url_for('admin_post_delete', post_id=post.id) }}" style="display:inline;">
-                <button class="action-btn delete"
-                        onclick="return confirm('Delete \'{{ post.title }}\'? This cannot be undone.')">🗑️ Delete</button>
+              <form method="post" action="{{ url_for('admin_post_delete', post_id=post.id) }}" style="display:inline;" id="del-post-{{ post.id }}">
+                <button type="button" class="action-btn delete"
+                        onclick="confirmAction('Delete &quot;{{ post.title }}&quot;? This cannot be undone.', () => document.getElementById('del-post-{{ post.id }}').submit())">🗑️ Delete</button>
               </form>
             </div>
           </td>

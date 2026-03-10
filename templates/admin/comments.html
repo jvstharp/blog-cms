@@ -50,9 +50,10 @@ async function approveComment(id) {
   document.querySelector(`#comment-${id} .approve`)?.remove();
 }
 async function deleteComment(id) {
-  if (!confirm('Delete this comment?')) return;
-  await fetch(`/admin/comments/${id}/delete`, { method: 'POST' });
-  document.getElementById(`comment-${id}`)?.remove();
+  confirmAction('Delete this comment?', async () => {
+    await fetch(`/admin/comments/${id}/delete`, { method: 'POST' });
+    document.getElementById(`comment-${id}`)?.remove();
+  });
 }
 </script>
 {% endblock %}

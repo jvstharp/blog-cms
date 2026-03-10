@@ -439,6 +439,7 @@ textarea.form-control { min-height: 120px; resize: vertical; }
 .modal-upload-bar span { font-size: 13px; font-weight: 600; color: var(--text-muted); }
 .modal-upload-bar:hover span { color: #7B4EA0; }
 .modal-upload-status { font-size: 12px; margin-left: auto; }
+.modal-box-sm { width: 420px; }
 .feature-btn.featured { border-color: var(--primary); color: #7B4EA0; background: var(--primary-light); font-weight: 700; }
 
 /* ── Misc ───────────────────────────────────────────────────────── */

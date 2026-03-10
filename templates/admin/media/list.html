@@ -92,9 +92,10 @@ function copyUrl(url) {
 }
 
 async function deleteMedia(id) {
-  if (!confirm('Delete this image permanently?')) return;
-  const res = await fetch(`/admin/media/${id}/delete`, { method: 'POST' });
-  if (res.ok) document.getElementById(`media-${id}`)?.remove();
+  confirmAction('Delete this image permanently?', async () => {
+    const res = await fetch(`/admin/media/${id}/delete`, { method: 'POST' });
+    if (res.ok) document.getElementById(`media-${id}`)?.remove();
+  });
 }
 </script>
 {% endblock %}

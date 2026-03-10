@@ -35,9 +35,10 @@
 {% block extra_scripts %}
 <script>
 async function deleteSubscriber(id) {
-  if (!confirm('Remove this subscriber?')) return;
-  await fetch(`/admin/subscribers/${id}/delete`, { method: 'POST' });
-  document.getElementById(`subscriber-${id}`)?.remove();
+  confirmAction('Remove this subscriber?', async () => {
+    await fetch(`/admin/subscribers/${id}/delete`, { method: 'POST' });
+    document.getElementById(`subscriber-${id}`)?.remove();
+  });
 }
 </script>
 {% endblock %}
