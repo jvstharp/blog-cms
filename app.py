@@ -843,6 +843,94 @@ def api_preview():
     return jsonify({'html': html})
 
 
+# ── Admin Autosave ──────────────────────────────────────────────────────────
+
+def make_unique_slug(base_slug, exclude_post_id=None):
+    """Return a slug guaranteed to be unique in the posts table.
+    If base_slug is already taken by another post, appends -2, -3, etc."""
+    conn = get_db()
+    candidate = base_slug
+    counter = 2
+    while True:
+        row = conn.execute("SELECT id FROM posts WHERE slug = ?", (candidate,)).fetchone()
+        if row is None:
+            conn.close()
+            return candidate
+        if exclude_post_id is not None and row['id'] == exclude_post_id:
+            conn.close()
+            return candidate
+        candidate = f"{base_slug}-{counter}"
+        counter += 1
+
+
+@app.route('/admin/posts/autosave', methods=['POST'])
+@login_required
+def admin_post_autosave():
+    data = request.get_json(silent=True) or {}
+    title = data.get('title', '').strip()
+    if not title:
+        return jsonify({'ok': False, 'error': 'title_empty'})
+
+    post_id     = data.get('post_id')          # None for new posts
+    raw_slug    = data.get('slug', '').strip()
+    content     = data.get('content', '')
+    excerpt     = data.get('excerpt', '').strip() or auto_excerpt(content)
+    feat_image  = data.get('featured_image', '') or None
+    status      = data.get('status', 'draft')
+    cat_ids     = [int(c) for c in data.get('categories', [])]
+    tag_names   = [t.strip() for t in data.get('tags', '').split(',') if t.strip()]
+    now         = datetime.now().isoformat(sep=' ', timespec='seconds')
+
+    base_slug = slugify(raw_slug or title)
+    slug = make_unique_slug(base_slug, exclude_post_id=post_id)
+
+    conn = get_db()
+    try:
+        if post_id:
+            row = conn.execute("SELECT id FROM posts WHERE id=?", (post_id,)).fetchone()
+            if not row:
+                return jsonify({'ok': False, 'error': 'not_found'}), 404
+            conn.execute("""
+                UPDATE posts
+                SET title=?, slug=?, content=?, excerpt=?, featured_image=?,
+                    status=?, updated_at=?,
+                    published_at=CASE WHEN status!='published' AND ?='published'
+                                      THEN ? ELSE published_at END
+                WHERE id=?
+            """, (title, slug, content, excerpt, feat_image,
+                  status, now, status, now, post_id))
+        else:
+            published_at = now if status == 'published' else None
+            conn.execute("""
+                INSERT INTO posts (title, slug, content, excerpt, status,
+                                   featured_image, author_id, published_at,
+                                   created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (title, slug, content, excerpt, status,
+                  feat_image, session['user_id'], published_at, now, now))
+            post_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+        conn.execute("DELETE FROM post_categories WHERE post_id=?", (post_id,))
+        for cat_id in cat_ids:
+            conn.execute("INSERT OR IGNORE INTO post_categories VALUES (?, ?)", (post_id, cat_id))
+
+        conn.execute("DELETE FROM post_tags WHERE post_id=?", (post_id,))
+        for tag_name in tag_names:
+            tag_slug = slugify(tag_name)
+            conn.execute("INSERT OR IGNORE INTO tags (name, slug) VALUES (?, ?)", (tag_name, tag_slug))
+            tag = conn.execute("SELECT id FROM tags WHERE slug=?", (tag_slug,)).fetchone()
+            conn.execute("INSERT OR IGNORE INTO post_tags VALUES (?, ?)", (post_id, tag['id']))
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'ok': False, 'error': str(e)})
+    finally:
+        conn.close()
+
+    return jsonify({'ok': True, 'post_id': post_id, 'slug': slug})
+
+
 # ── Uploads static ─────────────────────────────────────────────────────────
 
 @app.route('/uploads/<path:filename>')

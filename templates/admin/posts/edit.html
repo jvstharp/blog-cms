@@ -101,6 +101,10 @@
               <option value="published" {% if post and post.status == 'published' %}selected{% endif %}>🌐 Published</option>
             </select>
           </div>
+          <div id="autosaveStatus"
+               style="font-size:12px; text-align:center; min-height:18px;
+                      margin: 6px 0; color: var(--text-muted);">
+          </div>
           <button type="submit" class="btn btn-primary" style="width:100%;">
             💾 {{ 'Update Post' if post else 'Save Post' }}
           </button>
@@ -390,5 +394,70 @@ document.getElementById('modalFileInput').addEventListener('change', async funct
 document.getElementById('mediaModal').addEventListener('click', e => {
   if (e.target === document.getElementById('mediaModal')) closeMediaPicker();
 });
+
+// ── Auto-save ───────────────────────────────────────────────────────────────
+let autosaveTimer = null;
+let currentPostId = {{ post.id if post else 'null' }};
+const AUTOSAVE_DELAY = 1500;
+
+function setAutosaveStatus(text, color) {
+  const el = document.getElementById('autosaveStatus');
+  el.textContent = text;
+  el.style.color = color || 'var(--text-muted)';
+}
+
+function scheduleAutosave() {
+  setAutosaveStatus('Unsaved changes ●', '#f59e0b');
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(doAutosave, AUTOSAVE_DELAY);
+}
+
+async function doAutosave() {
+  const title = document.getElementById('titleInput').value.trim();
+  if (!title) return;
+
+  setAutosaveStatus('Saving…', 'var(--text-muted)');
+  const payload = {
+    post_id:       currentPostId,
+    title,
+    slug:          document.getElementById('slugInput').value.trim(),
+    content:       document.getElementById('content').value,
+    excerpt:       document.querySelector('textarea[name="excerpt"]').value,
+    featured_image: document.getElementById('featuredImageInput').value,
+    status:        document.querySelector('select[name="status"]').value,
+    categories:    [...document.querySelectorAll('input[name="categories"]:checked')]
+                     .map(el => parseInt(el.value)),
+    tags:          document.getElementById('tagsInput').value,
+  };
+  try {
+    const res  = await fetch('/admin/posts/autosave', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.ok) {
+      if (!currentPostId) {
+        currentPostId = data.post_id;
+        history.pushState({}, '', '/admin/posts/' + data.post_id + '/edit');
+      }
+      setAutosaveStatus('Draft saved ✓', '#10b981');
+    } else {
+      setAutosaveStatus('Unsaved changes ●', '#f59e0b');
+    }
+  } catch {
+    setAutosaveStatus('Save failed', '#ef4444');
+  }
+}
+
+// Watch all fields
+['titleInput', 'slugInput', 'content', 'featuredImageInput', 'tagsInput'].forEach(id => {
+  document.getElementById(id)?.addEventListener('input', scheduleAutosave);
+});
+document.querySelector('textarea[name="excerpt"]')?.addEventListener('input', scheduleAutosave);
+document.querySelectorAll('input[name="categories"]').forEach(cb =>
+  cb.addEventListener('change', scheduleAutosave)
+);
+document.querySelector('select[name="status"]')?.addEventListener('change', scheduleAutosave);
 </script>
 {% endblock %}
