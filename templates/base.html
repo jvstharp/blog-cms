@@ -31,7 +31,7 @@
       <a href="{{ url_for('index') }}" class="site-logo{% if settings.site_logo %} has-logo{% endif %}">
         {% if settings.site_logo %}
         <img src="{{ url_for('static', filename='uploads/' + settings.site_logo) }}" alt="{{ settings.site_name }}">
-        <span style="margin-left: 10px;">{{ settings.site_name }}</span>
+        <span class="site-logo-text">{{ settings.site_name }}</span>
         {% else %}{{ settings.site_name }}{% endif %}
       </a>
       <nav>
@@ -66,7 +66,7 @@
       <a href="{{ url_for('index') }}" class="site-logo{% if settings.site_logo %} has-logo{% endif %}">
         {% if settings.site_logo %}
         <img src="{{ url_for('static', filename='uploads/' + settings.site_logo) }}" alt="{{ settings.site_name }}">
-        <span style="margin-left: 10px;">{{ settings.site_name }}</span>
+        <span class="site-logo-text">{{ settings.site_name }}</span>
         {% else %}{{ settings.site_name }}{% endif %}
       </a>
       <div class="footer-links">

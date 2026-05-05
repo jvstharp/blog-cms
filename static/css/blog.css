@@ -61,12 +61,20 @@ header .container {
   display: flex;
   align-items: center;
 }
+.site-logo-text {
+  margin-left: 10px;
+}
 .site-logo.has-logo img {
   height: 36px; width: auto;
   object-fit: contain;
   display: block;
   border-radius: 0;
   vertical-align: middle;
+}
+header .site-logo-text {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
 }
 nav { display: flex; align-items: center; gap: 8px; }
 .nav-links { display: none; }
